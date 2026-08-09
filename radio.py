@@ -5,8 +5,8 @@ from rtlsdr import RtlSdr
 
 # SDR setup
 sdr = RtlSdr()
-sdr.sample_rate = 2.4e6
-sdr.center_freq = 100e6
+sdr.sample_rate = 2.4e6 # controls span of data 
+sdr.center_freq = 100e6 # FM range 
 sdr.gain = "auto"
 
 # Options
@@ -66,6 +66,22 @@ colorbar.orientation = "vertical"
 colorbar.setFixedWidth(120)
 waterfall_row.addWidget(colorbar)
 layout.addLayout(waterfall_row)
+
+# IQ scatter and phase plots
+iq_plot = pg.PlotWidget(labels={"left": "Q", "bottom": "I"})
+iq_plot.setMouseEnabled(x=False, y=False)
+iq_plot.setAspectLocked(True, ratio=1)
+iq_scatter = pg.ScatterPlotItem(size=2, pen=None, brush=pg.mkBrush(0, 255, 0, 120))
+iq_plot.addItem(iq_scatter)
+
+phase_plot = pg.PlotWidget(labels={"left": "Phase (rad)", "bottom": "Time (s)"})
+phase_plot.setMouseEnabled(x=False, y=False)
+phase_curve = phase_plot.plot([], [], pen=pg.mkPen("c", width=1))
+
+iq_phase_row = QtWidgets.QHBoxLayout()
+iq_phase_row.addWidget(iq_plot)
+iq_phase_row.addWidget(phase_plot)
+layout.addLayout(iq_phase_row)
 
 # window setup
 win.setWindowTitle("RTL-SDR Spectrum")

@@ -26,7 +26,7 @@ POWER_MAX = 50
 waterfall = np.full((WATERFALL_ROWS, FFT_SIZE), POWER_MIN) 
 
 fig, (ax_spectrum, ax_waterfall) = plt.subplots(2, 1, figsize=(10, 7), gridspec_kw={"height_ratios": [1, 2]})
-spectrum_plot, = ax_spectrum.plot(freqs, waterfall[-1], lw=0.5)
+spectrum_plot = ax_spectrum.plot(freqs, waterfall[-1], lw=0.5)
 ax_spectrum.set_xlim(freqs[0], freqs[-1])
 ax_spectrum.set_ylim(POWER_MIN, POWER_MAX)
 ax_spectrum.set_ylabel("Power (dB)")
