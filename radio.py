@@ -26,11 +26,11 @@ win = QtWidgets.QWidget()
 layout = QtWidgets.QVBoxLayout(win)
 
 # plotting the spectrum
-waterfall = np.full((WATERFALL_ROWS, FFT_SIZE), -50.0)
-spectrum_plot = pg.PlotWidget(labels={"left": "Power (dB)", "bottom": "Frequency (MHz)"})
+waterfall = np.full((WATERFALL_ROWS, FFT_SIZE), -160.0)
+spectrum_plot = pg.PlotWidget(labels={"left": "PSD (dB/Hz)", "bottom": "Frequency (MHz)"})
 spectrum_plot.setMouseEnabled(x=False, y=False) # get rid of default dragging functionality
 curve = spectrum_plot.plot(freqs, waterfall[-1], pen=pg.mkPen("y", width=1))
-spectrum_plot.setYRange(POWER_MIN, POWER_MAX)
+spectrum_plot.setYRange(-160.0, -40.0)
 spectrum_plot.getPlotItem().enableAutoRange(False, False)
 
 # adding spectrum plot to layout
@@ -89,9 +89,14 @@ win.showMaximized()
 
 def get_power_spectral_density():
     samples = sdr.read_samples(FFT_SIZE) # list of complex IQ samples
-    spectrum = np.fft.fftshift(np.fft.fft(samples * window)) # run FFT with hanning
-    dB = 20 * np.log10(np.abs(spectrum) + 1e-12) # converts to dB (need +1e-12 to prevent log(0))
-    return dB
+    spectrum = np.fft.fft(samples * window)
+
+    # psd estimate (power per Hz)
+    psd = (np.abs(spectrum) ** 2) / (sdr.sample_rate * np.sum(window ** 2)) # np.sum(window**2) corrects for the window energy
+    psd_db = 10 * np.log10(psd + 1e-30) # add 1e-30 to avoid log(0)
+    psd_shifted = np.fft.fftshift(psd_db)
+    return psd_shifted
+
 
 def update():
     global waterfall
