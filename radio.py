@@ -5,8 +5,8 @@ from rtlsdr import RtlSdr
 
 # SDR setup
 sdr = RtlSdr()
-sdr.sample_rate = 1.2e6 # controls span of data 
-sdr.center_freq = 100.8 * 1e6 # FM range 
+sdr.sample_rate = 2.4e6 # controls span of data 
+sdr.center_freq = 100.0 * 1e6 # FM range 
 sdr.gain = "auto"
 
 # Options
