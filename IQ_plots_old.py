@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from rtlsdr import RtlSdr
-from scipy.signal import butter, sosfilt
 from scipy.io.wavfile import write
 
 # SDR setup
@@ -12,11 +11,7 @@ sdr.sample_rate = SAMPLE_RATE # Hz
 sdr.center_freq = 100.3 * 1e6 # Hz
 sdr.gain = "auto"
 
-OUTPUT_RATE = 48_000
-DECIMATION = SAMPLE_RATE // OUTPUT_RATE
-RF_CUTOFF = 100_000
-AUDIO_CUTOFF = 15_000
-SAMPLING_INTERVAL = 10.0 # seconds
+SAMPLING_INTERVAL = 2.0 # seconds
 CUTOFF = 0.002 
 num_samples = int(sdr.sample_rate * SAMPLING_INTERVAL)
 
@@ -33,13 +28,10 @@ while remaining > 0:
 
 samples = np.concatenate(samples)
 
-# Filter the RF channel before demodulation and downsampling.
-rf_filter = butter(5, RF_CUTOFF, btype="lowpass", fs=SAMPLE_RATE, output="sos")
-filtered_samples = sosfilt(rf_filter, samples)
-
-i = np.real(filtered_samples)
-q = np.imag(filtered_samples)
-time = np.arange(filtered_samples.size) / sdr.sample_rate
+i = np.real(samples)
+q = np.imag(samples)
+phase = np.angle(samples)
+time = np.arange(num_samples) / sdr.sample_rate
 
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
 ax1.scatter(i, q, s=1, alpha=0.3)
@@ -49,16 +41,9 @@ ax1.set_title("Q vs I (complex)")
 ax1.set_aspect("equal", adjustable="box")
 ax1.grid(True)
 
-phase_differences = np.angle(
-    filtered_samples[1:] * np.conj(filtered_samples[:-1]) # naturally gives wrapped smallest phase
-)
-
-# Remove high-frequency demodulator noise before downsampling.
-audio_filter = butter(
-    5, AUDIO_CUTOFF, btype="lowpass", fs=SAMPLE_RATE, output="sos"
-)
-phase_differences = sosfilt(audio_filter, phase_differences)
-time = time[1:]
+phase_differences = np.unwrap(phase)
+phase_differences = np.diff(phase_differences)
+time = time[0:-1]
 
 # throw away first 2 milliseconds
 mask = time > CUTOFF
@@ -71,13 +56,9 @@ if max_val > 0:
 else:
     normalized_data = phase_differences
 
-
-
 # Convert to 16-bit PCM integers (-32768 to 32767)
 audio_data = (normalized_data * 32767).astype(np.int16)
-audio_samples = normalized_data[::DECIMATION]
-audio_data = (audio_samples * 32767).astype(np.int16)
-write("output.wav", OUTPUT_RATE, audio_data)
+write("output.wav", SAMPLE_RATE, audio_data)
 
 ax2.plot(time, phase_differences)
 ax2.set_xlabel("Time (s)")
