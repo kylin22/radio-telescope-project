@@ -9,8 +9,8 @@ import time
 sdr = RtlSdr()
 
 CENTRAL_FREQ = 100.3 * 1e6 # Hz
-SAMPLE_RATE = int(2.4e6)
-RANGE = [90 * 1e6, 110 * 1e6]
+SAMPLE_RATE = int(1.2e6)
+RANGE = [88 * 1e6, 108 * 1e6]
 
 sdr.sample_rate = SAMPLE_RATE # Hz
 sdr.gain = 20
@@ -21,12 +21,33 @@ RF_CUTOFF = 100_000
 AUDIO_CUTOFF = 15_000
 SAMPLING_INTERVAL = 0.1 # seconds
 CUTOFF = 0.002 
-N_SAMPLES = 2 ** 20
+N_SAMPLES = 2 ** 19
 SUBDIVISIONS = 512
 CUTOFF = 2
 num_samples = int(sdr.sample_rate * SAMPLING_INTERVAL)
 
-range = np.arange(RANGE[0], RANGE[1], SAMPLE_RATE)
+freq_range = np.arange(RANGE[0], RANGE[1], SAMPLE_RATE)
+print(freq_range)
+
+radio_stations = {
+    "Light FM": 89.9,
+    "SYN": 90.7,
+    "Smooth 91.5": 91.5,
+    "3ZZZ": 92.3,
+    "SBS Radio 2": 93.1,
+    "Nova 100": 100.3,
+    "KIIS 101.1": 101.1,
+    "Fox 101.9": 101.9,
+    "Triple R": 102.7,
+    "Fine Music 103.5": 103.5,
+    "Gold 104.3": 104.3,
+    "Triple M Melbourne": 105.1,
+    "ABC Classic": 105.9,
+    "PBS FM": 106.7,
+    "ABC triple j": 107.5,
+    "Yarra Valley FM": 99.1,
+    "Radio Eastern FM": 98.1,
+}
 
 def power_spectral_density(samples, sample_rate, n_fft=512):
     # remaining = len(samples) - len(samples)
@@ -52,9 +73,10 @@ def generate_waterfall(central_freq):
     waterfall = waterfall[CUTOFF:, :]
     return waterfall
 
-waterfall = generate_waterfall(range[0])
-for freq in range[1:]:
-    current_waterfall = generate_waterfall(freq)
+waterfall = generate_waterfall(freq_range[0])
+for central_freq in freq_range[1:]:
+    print(f"Generating waterfall for {central_freq / 1e6} MHz")
+    current_waterfall = generate_waterfall(central_freq)
     waterfall = np.concatenate([waterfall, current_waterfall], axis=1)
 
 vmin, vmax = np.percentile(waterfall, [2, 98])
@@ -65,10 +87,12 @@ plt.imshow(
     cmap='plasma', 
     aspect="auto", 
     origin="lower", 
-    extent=[(RANGE[0] - SAMPLE_RATE / 2) / 1e6, (RANGE[1] - SAMPLE_RATE / 2) / 1e6, 0, (N_SAMPLES / SAMPLE_RATE) * len(range)])
+    extent=[(freq_range[0] - SAMPLE_RATE / 2) / 1e6, (freq_range[-1] + SAMPLE_RATE / 2) / 1e6, 0, (N_SAMPLES / SAMPLE_RATE)])
 plt.xlabel("frequency (MHz)")
 plt.ylabel("time (s)")
-
+# draw text labels for each radio station
+for station, central_freq in radio_stations.items():
+    plt.text(central_freq, (N_SAMPLES / SAMPLE_RATE) * 1.025, f"{station}: {central_freq}", color='black', fontsize=8, ha='center', va='bottom', rotation=90)
 plt.tight_layout()
 plt.show()
 sdr.close()
